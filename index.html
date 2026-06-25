@@ -87,7 +87,12 @@
         #table-wrapper::-webkit-scrollbar { height: 8px; }
         #table-wrapper::-webkit-scrollbar-thumb { background: #D2E4DA; border-radius: 8px; }
 
-        #expense-list tr:nth-child(even) { background-color: rgba(234,242,236,0.45); }
+        /* สไตล์เสริมเมื่อมีการลากและสลับแถว */
+        tr.dragging {
+            opacity: 0.4;
+            background-color: #FBF3E1 !important;
+            border: 2px dashed #C9A04E !important;
+        }
     </style>
 </head>
 <body class="text-ink p-4 md:p-6 lg:p-8">
@@ -99,19 +104,18 @@
         <header class="ledger-spine flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-br from-ledger-700 to-ledger-600 pl-9 pr-6 py-6 rounded-2xl shadow-lg shadow-ledger-700/20 text-white border-b-2 border-gold-400/40">
             <div>
                 <h1 class="font-display text-2xl md:text-3xl font-semibold tracking-tight">บันทึกค่าใช้จ่าย</h1>
-                <!-- <p class="text-ledger-100/90 text-sm mt-1">บันทึกรายรับ-รายจ่ายประจำวัน แล้วดูยอดสรุปได้ทันที</p> -->
             </div>
             <!-- Quick Stats -->
-            <div class="grid grid-cols-2 gap-3 shrink-0 w-full md:w-auto">
-                <div class="bg-white/10 px-4 py-2.5 rounded-xl backdrop-blur-sm border border-white/10 min-w-0 md:min-w-[132px]">
-                    <span class="text-[11px] text-white/85 flex items-center gap-1 font-medium uppercase tracking-wide">
+            <div class="flex gap-3 shrink-0">
+                <div class="bg-white/10 px-4 py-2.5 rounded-xl backdrop-blur-sm border border-white/10 min-w-[132px]">
+                    <span class="text-[11px] text-ledger-100/80 flex items-center gap-1 font-medium uppercase tracking-wide">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg>
                         รับเข้า
                     </span>
                     <span id="quick-income" class="font-mono text-lg font-semibold text-[#F4D9A0] block mt-0.5 tabular-nums">0.00 บาท</span>
                 </div>
-                <div class="bg-white/10 px-4 py-2.5 rounded-xl backdrop-blur-sm border border-white/10 min-w-0 md:min-w-[132px]">
-                    <span class="text-[11px] text-white/85 flex items-center gap-1 font-medium uppercase tracking-wide">
+                <div class="bg-white/10 px-4 py-2.5 rounded-xl backdrop-blur-sm border border-white/10 min-w-[132px]">
+                    <span class="text-[11px] text-ledger-100/80 flex items-center gap-1 font-medium uppercase tracking-wide">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l6-6m-6 6l-6-6"/></svg>
                         จ่ายออก
                     </span>
@@ -126,7 +130,7 @@
             <!-- ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล (กว้าง 4 ส่วน) ตรึงอยู่กับที่เมื่อสโครลบนคอมพิวเตอร์ -->
             <aside class="lg:col-span-4 lg:sticky lg:top-6 space-y-6 no-print">
                 <div id="form-card" class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200/70 transition-all duration-300">
-                    <div class="flex justify-between items-center mb-1 border-b border-stone-100 pb-4">
+                    <div class="flex justify-between items-center mb-6 border-b border-stone-100 pb-4">
                         <div class="flex items-center gap-2.5">
                             <span class="w-1.5 h-6 bg-gold-500 rounded-full"></span>
                             <h2 id="form-title" class="font-display text-xl font-semibold text-ink transition-colors">บันทึกค่าใช้จ่าย</h2>
@@ -135,52 +139,54 @@
                             กำลังแก้ไขรายการ
                         </span>
                     </div>
-                    <!-- <p class="text-xs text-stone-400 mb-5">กรอกรายการ แล้วกดปุ่ม "เพิ่มข้อมูลลงตาราง" — รายการจะไปแสดงในตารางสรุปทางขวาทันที</p> -->
 
                     <form id="expense-form" class="space-y-4">
                         <div>
-                            <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">วันที่ <span class="text-rust-500">*</span></label>
+                            <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">วันที่</label>
                             <input type="date" id="dateInput" required class="w-full border border-stone-200 rounded-xl p-3 focus:ring-2 focus:ring-ledger-500 focus:border-ledger-500 focus:outline-none transition-shadow bg-stone-50/60 text-ink">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">รายการ <span class="text-rust-500">*</span></label>
+                            <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">รายการ</label>
                             <input type="text" id="descInput" placeholder="เช่น ค่าอาหาร, ค่าเดินทาง, รับเงิน" required class="w-full border border-stone-200 rounded-xl p-3 focus:ring-2 focus:ring-ledger-500 focus:border-ledger-500 focus:outline-none transition-shadow bg-stone-50/60 text-ink">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">หมวดหมู่</label>
                             <select id="catInput" class="w-full border border-stone-200 rounded-xl p-3 focus:ring-2 focus:ring-ledger-500 focus:border-ledger-500 focus:outline-none transition-shadow bg-stone-50/60 text-ink">
-                                <option value="เก็บเงินจากลูกค้า">เก็บเงินจากลูกค้า (รายรับ)</option>
-                                <option value="เบิกเงิน">เบิกเงิน (รายรับ)</option>
-                                <option value="อาหาร">อาหาร (รายจ่าย)</option>
-                                <option value="เดินทาง">เดินทาง (รายจ่าย)</option>
-                                <option value="ที่พัก/เครื่องใช้">ที่พัก/เครื่องใช้ (รายจ่าย)</option>
-                                <option value="อื่นๆ">อื่นๆ (รายจ่าย)</option>
+                                <option value="เก็บเงินจากลูกค้า">เก็บเงินจากลูกค้า</option>
+                                <option value="เบิกเงิน">เบิกเงิน</option>
+                                <option value="อาหาร">อาหาร</option>
+                                <option value="เดินทาง">เดินทาง</option>
+                                <option value="อุปกรณ์">อุปกรณ์</option>
+                                <option value="อื่นๆ">อื่นๆ</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">จำนวนเงิน (บาท) <span class="text-rust-500">*</span></label>
+                            <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">จำนวนเงิน</label>
                             <input type="text" id="amountInput" placeholder="กดบวกได้เลย" required class="w-full border border-stone-200 rounded-xl p-3 focus:ring-2 focus:ring-ledger-500 focus:border-ledger-500 focus:outline-none transition-shadow bg-stone-50/60 text-ink font-mono">
-                            <!-- <p class="text-[11px] text-stone-400 mt-1.5">เคล็ดลับ: พิมพ์สูตรคำนวณได้เลย เช่น 100+50-20</p> -->
-                            <p id="amount-error" class="hidden text-[11px] text-rust-600 font-medium mt-1.5">⚠ กรุณากรอกวันที่ รายการ และจำนวนเงินให้ถูกต้องก่อนบันทึก</p>
+                            
+                            <!-- ปุ่มลัดแทรกแถวยอดรวมย่อยคั่นตาราง -->
+                            <div class="mt-2.5">
+                                <button type="button" onclick="insertSubtotalRow()" class="w-full bg-gold-50/80 hover:bg-gold-100 text-gold-700 hover:text-gold-800 font-medium py-2.5 px-3 rounded-xl transition-all border border-gold-200 text-xs flex items-center justify-center gap-2 shadow-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gold-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                    </svg>
+                                    ➕ กด รวม ตรงนี้
+                                </button>
+                            </div>
                         </div>
 
                         <!-- ช่องกรอกหมายเหตุพิเศษ -->
                         <div id="noteContainer" class="hidden bg-gold-50 p-4 rounded-xl border border-gold-200/70 transition-all">
-                            <label class="flex items-center gap-1.5 text-sm font-semibold text-gold-600 mb-1.5">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                เลขที่บิล
-                            </label>
-                            <input type="text" id="noteInput" placeholder="เช่น เลขที่บิล INV-0021" class="w-full border border-gold-200 rounded-xl p-3 focus:ring-2 focus:ring-gold-400 focus:outline-none bg-white text-ink">
+                            <label class="block text-sm font-semibold text-gold-600 mb-1.5">เลขที่บิล</label>
+                            <input type="text" id="noteInput" placeholder="ระบุรายละเอียดเพิ่มเติม..." class="w-full border border-gold-200 rounded-xl p-3 focus:ring-2 focus:ring-gold-400 focus:outline-none bg-white text-ink">
                         </div>
 
                         <!-- ปุ่มกดส่งแบบบันทึกข้อมูล -->
                         <div class="flex gap-2 pt-2">
-                            <button type="submit" id="submit-btn" class="flex-1 bg-ledger-600 hover:bg-ledger-700 active:scale-[0.98] text-white font-medium py-3 rounded-xl transition-all shadow-md shadow-ledger-600/20 hover:shadow-ledger-600/30 flex items-center justify-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                                <span id="submit-btn-text">เพิ่มข้อมูลลงตาราง</span>
+                            <button type="submit" id="submit-btn" class="flex-1 bg-ledger-600 hover:bg-ledger-700 text-white font-medium py-3 rounded-xl transition-all shadow-md shadow-ledger-600/20 hover:shadow-ledger-600/30">
+                                เพิ่ม
                             </button>
-                            <button type="button" id="cancel-btn" onclick="cancelEdit()" class="hidden bg-stone-200 hover:bg-stone-300 active:scale-[0.98] text-stone-700 font-medium px-4 py-3 rounded-xl transition-colors flex items-center justify-center gap-1.5">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                            <button type="button" id="cancel-btn" onclick="cancelEdit()" class="hidden bg-stone-200 hover:bg-stone-300 text-stone-700 font-medium px-4 py-3 rounded-xl transition-colors">
                                 ยกเลิก
                             </button>
                         </div>
@@ -196,11 +202,7 @@
                     <span class="report-tab no-print">รายงานสรุป</span>
                     <div class="text-center mb-8">
                         <!-- หัวข้อแก้ไขคำได้อิสระ -->
-                        <h2 id="report-title-display" contenteditable="true" class="font-display text-3xl font-semibold text-ink border-b-2 border-transparent hover:border-stone-300 focus:border-gold-400 focus:outline-none transition-colors inline-block px-4 py-1 rounded cursor-text" title="คลิกเพื่อแก้ไขหัวข้อรายงาน">แก้ชื่อตรงนี้</h2>
-                        <span class="no-print block text-[11px] text-stone-400 mt-1 flex items-center justify-center gap-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                            <!-- คลิกที่หัวข้อหรือวันที่เพื่อแก้ไขได้โดยตรง -->
-                        </span>
+                        <h2 id="report-title-display" contenteditable="true" class="font-display text-3xl font-semibold text-ink border-b-2 border-transparent hover:border-stone-300 focus:border-gold-400 focus:outline-none transition-colors inline-block px-4 py-1 rounded cursor-text" title="คลิกเพื่อแก้ไขหัวข้อรายงาน">เปลี่ยชื่อรายการตรงนี้</h2>
 
                         <!-- วันที่แก้ไขได้อิสระ -->
                         <p class="text-stone-500 mt-4 text-base" id="report-date-range">
@@ -214,8 +216,9 @@
                         <table id="expense-table" class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-ledger-50 text-ledger-700 border-b border-ledger-100">
+                                    <th class="p-4 font-semibold text-sm no-print-col" style="width: 8%;">ย้าย</th>
                                     <th class="p-4 font-semibold text-sm" style="width: 10%;">ลำดับ</th>
-                                    <th class="p-4 font-semibold text-sm" style="width: 45%;">รายการ</th>
+                                    <th class="p-4 font-semibold text-sm" style="width: 37%;">รายการ</th>
                                     <th class="p-4 font-semibold text-sm no-print-col" style="width: 15%;">หมวดหมู่</th>
                                     <th class="p-4 font-semibold text-sm text-right" style="width: 20%;">จำนวนเงิน</th>
                                     <th class="p-4 font-semibold text-sm text-center no-print-col" style="width: 10%;">จัดการ</th>
@@ -224,7 +227,7 @@
                             <tbody id="expense-list">
                                 <!-- แถวรายการจริงจะแสดงผ่านการเรียกใช้งาน JavaScript -->
                                 <tr>
-                                    <td id="empty-row-cell" colspan="5" class="p-12 text-center text-stone-400">
+                                    <td id="empty-row-cell" colspan="6" class="p-12 text-center text-stone-400">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9 mx-auto mb-2 text-stone-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17h6m-6-4h6m-7 8h8a2 2 0 002-2V5a2 2 0 00-2-2H9a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                                         ยังไม่มีรายการ — เริ่มบันทึกรายการแรกของวันนี้ได้เลย
                                     </td>
@@ -232,28 +235,31 @@
                             </tbody>
                             <tfoot>
                                 <tr class="bg-gold-50 border-t-4 border-double border-ledger-400">
-                                    <td id="footer-label" colspan="3" class="p-4 text-right font-semibold text-ink text-base font-display">ยอดสุทธิ (คงเหลือ):</td>
+                                    <td id="footer-label" colspan="4" class="p-4 text-right font-semibold text-ink text-base font-display">ยอดสุทธิ (คงเหลือ):</td>
                                     <td class="p-4 text-right font-bold text-ink font-mono text-xl tabular-nums" id="total-amount">0.00</td>
                                     <td class="no-print-col"></td>
                                 </tr>
                             </tfoot>
                         </table>
                     </div>
+                    <div class="mt-2 text-xs text-stone-400 flex items-center gap-1.5 no-print">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gold-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                        <!-- <span>คุณสามารถคลิกค้างที่สัญลักษณ์ <span class="font-bold text-gold-600">⋮⋮</span> แล้วลากสลับแถวขึ้น-ลงได้ตามต้องการ หรือกดปุ่มสลับย้ายข้างขวา</span> -->
+                    </div>
                 </div>
 
                 <!-- ปุ่มควบคุมสำหรับล้างทั้งหมดและเซฟเป็น PDF (no-print เพื่อซ่อนเวลาพิมพ์ออกกระดาษ) -->
                 <div class="flex flex-col sm:flex-row justify-end gap-3 no-print">
-                    <button onclick="clearData()" class="px-6 py-3 bg-rust-50 text-rust-600 hover:bg-rust-100 active:scale-[0.98] font-medium rounded-xl transition-all flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        ล้างข้อมูลทั้งหมด
+                    <button onclick="clearData()" class="px-6 py-3 bg-rust-50 text-rust-600 hover:bg-rust-100 font-medium rounded-xl transition-colors">
+                        รีเช็ต
                     </button>
-                    <button onclick="exportToPDF()" class="px-8 py-3 bg-ledger-600 hover:bg-ledger-700 active:scale-[0.98] text-white font-medium rounded-xl shadow-lg shadow-ledger-600/20 hover:shadow-ledger-600/30 flex items-center justify-center gap-2 transition-all">
+                    <button onclick="exportToPDF()" class="px-8 py-3 bg-ledger-600 hover:bg-ledger-700 text-white font-medium rounded-xl shadow-lg shadow-ledger-600/20 hover:shadow-ledger-600/30 flex items-center justify-center gap-2 transition-all">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
-                        บันทึกเลย
+                        บันทึกเป็น
                     </button>
                 </div>
 
@@ -343,8 +349,8 @@
                 formTitle.textContent = 'แก้ไขรายการ';
                 formTitle.className = 'font-display text-xl font-semibold text-gold-600 transition-colors';
                 editBadge.classList.remove('hidden');
-                document.getElementById('submit-btn-text').textContent = 'บันทึกการแก้ไข';
-                submitBtn.className = 'flex-1 bg-gold-500 hover:bg-gold-600 active:scale-[0.98] text-white font-medium py-3 rounded-xl transition-all shadow-md shadow-gold-500/20 flex items-center justify-center gap-2';
+                submitBtn.textContent = 'บันทึกการแก้ไข';
+                submitBtn.className = 'flex-1 bg-gold-500 hover:bg-gold-600 text-white font-medium py-3 rounded-xl transition-all shadow-md shadow-gold-500/20';
                 cancelBtn.classList.remove('hidden');
             } else {
                 formCard.classList.add('border-stone-200/70');
@@ -352,8 +358,8 @@
                 formTitle.textContent = 'บันทึกค่าใช้จ่าย';
                 formTitle.className = 'font-display text-xl font-semibold text-ink transition-colors';
                 editBadge.classList.add('hidden');
-                document.getElementById('submit-btn-text').textContent = 'เพิ่มข้อมูลลงตาราง';
-                submitBtn.className = 'flex-1 bg-ledger-600 hover:bg-ledger-700 active:scale-[0.98] text-white font-medium py-3 rounded-xl transition-all shadow-md shadow-ledger-600/20 flex items-center justify-center gap-2';
+                submitBtn.textContent = 'เพิ่มข้อมูลลงตาราง';
+                submitBtn.className = 'flex-1 bg-ledger-600 hover:bg-ledger-700 text-white font-medium py-3 rounded-xl transition-all shadow-md shadow-ledger-600/20';
                 cancelBtn.classList.add('hidden');
 
                 editingId = null;
@@ -365,7 +371,6 @@
             document.getElementById('descInput').value = '';
             document.getElementById('amountInput').value = '';
             document.getElementById('noteInput').value = '';
-            document.getElementById('amount-error').classList.add('hidden');
             toggleNote();
             updateUI();
         }
@@ -373,7 +378,7 @@
         // ดึงค่าสูตรและข้อมูลแถวกลับสู่ช่องป้อนข้อมูล
         function editExpense(id) {
             const exp = expenses.find(e => e.id === id);
-            if (!exp) return;
+            if (!exp || exp.type === 'subtotal') return;
 
             editingId = id;
             document.getElementById('dateInput').value = exp.date;
@@ -410,11 +415,7 @@
                 amount = NaN;
             }
 
-            if (!date || !desc || isNaN(amount) || amount === undefined) {
-                document.getElementById('amount-error').classList.remove('hidden');
-                return;
-            }
-            document.getElementById('amount-error').classList.add('hidden');
+            if (!date || !desc || isNaN(amount) || amount === undefined) return;
 
             if (editingId) {
                 const index = expenses.findIndex(exp => exp.id === editingId);
@@ -433,6 +434,7 @@
             } else {
                 const newExpense = {
                     id: Date.now().toString(),
+                    type: 'normal',
                     date: date,
                     desc: desc,
                     cat: categoryInput,
@@ -451,6 +453,30 @@
             updateUI();
         });
 
+        // ฟังก์ชันแทรกแถวยอดรวมย่อยสะสม ณ จุดปัจจุบัน
+        function insertSubtotalRow() {
+            const date = document.getElementById('dateInput').value || new Date().toISOString().split('T')[0];
+            const newSubtotal = {
+                id: Date.now().toString(),
+                type: 'subtotal',
+                date: date,
+                desc: 'รวม',
+                cat: 'ยอดรวมย่อย',
+                amount: 0 // จะได้รับการคำนวณแบบไดนามิกในคิวอัปเดต UI
+            };
+            expenses.push(newSubtotal);
+            updateUI();
+        }
+
+        // ฟังก์ชันบันทึกการพิมพ์ชื่อยอดรวมย่อยใหม่เมื่อคลิกแก้บนตาราง
+        function updateSubtotalDesc(id, newDesc) {
+            const index = expenses.findIndex(exp => exp.id === id);
+            if (index !== -1) {
+                expenses[index].desc = newDesc.trim() || 'ยอดรวมย่อย (Subtotal)';
+            }
+        }
+
+        // ฟังก์ชันลบรายการ
         function deleteExpense(id) {
             if (editingId === id) {
                 cancelEdit();
@@ -459,16 +485,34 @@
             updateUI();
         }
 
+        // ระบบขยับขึ้นแถวรายการอย่างอิสระแบบ Button Fallback
+        function moveRowUp(index) {
+            if (index <= 0) return;
+            const temp = expenses[index];
+            expenses[index] = expenses[index - 1];
+            expenses[index - 1] = temp;
+            updateUI();
+        }
+
+        // ระบบขยับลงแถวรายการอย่างอิสระแบบ Button Fallback
+        function moveRowDown(index) {
+            if (index >= expenses.length - 1) return;
+            const temp = expenses[index];
+            expenses[index] = expenses[index + 1];
+            expenses[index + 1] = temp;
+            updateUI();
+        }
+
         // ประมวลผลตารางและสรุปสถานะการเงินรวมแบบเรียลไทม์
         function updateUI() {
             listContainer.innerHTML = '';
-            let total = 0;
+            let grandTotal = 0;
             let totalIncome = 0;
             let totalExpense = 0;
             const footerLabelElement = document.getElementById('footer-label');
 
             if (expenses.length === 0) {
-                listContainer.innerHTML = `<tr><td id="empty-row-cell" colspan="5" class="p-12 text-center text-stone-400">
+                listContainer.innerHTML = `<tr><td id="empty-row-cell" colspan="6" class="p-12 text-center text-stone-400">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9 mx-auto mb-2 text-stone-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17h6m-6-4h6m-7 8h8a2 2 0 002-2V5a2 2 0 00-2-2H9a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                     ยังไม่มีรายการ — เริ่มบันทึกรายการแรกของวันนี้ได้เลย
                 </td></tr>`;
@@ -481,51 +525,107 @@
                 return;
             }
 
+            // คำนวณบล็อกยอดสะสมย่อยระหว่างช่วงแบบไดนามิก (ตั้งแต่เริ่มต้นหรือจากจุดรวมย่อยอันก่อนหน้า)
+            let runningBlockSum = 0;
+
             expenses.forEach((exp, index) => {
                 const isIncome = exp.cat === 'เก็บเงินจากลูกค้า' || exp.cat === 'เบิกเงิน';
 
-                if (isIncome) {
-                    total += exp.amount;
-                    totalIncome += exp.amount;
+                const tr = document.createElement('tr');
+                tr.draggable = true;
+                tr.dataset.index = index;
+
+                if (exp.type === 'subtotal') {
+                    // กำหนดยอดคำนวณประจำบล็อกที่สะสมมาจนถึงบรรทัดนี้ให้แถว Subtotal ตัวเอง
+                    exp.amount = runningBlockSum;
+                    // ทำการล้างค่ายอดสะสมเพื่อเตรียมเริ่มคำนวณบล็อกย่อยต่อไป
+                    runningBlockSum = 0;
+
+                    const amountText = formatMoney(Math.abs(exp.amount));
+                    const amountColorClass = exp.amount >= 0 ? 'text-ledger-600' : 'text-rust-500';
+
+                    tr.className = `bg-gold-50/50 border-t border-b-2 border-double border-gold-400/60 font-semibold transition-colors`;
+                    tr.innerHTML = `
+                        <td class="p-4 text-center cursor-grab active:cursor-grabbing no-print-col text-stone-400 select-none drag-handle" title="จับเพื่อลากสลับแถว">
+                            <svg class="w-4 h-4 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M7 4a1 1 0 100 2h1 1 0 100-2H7zm0 6a1 1 0 100 2h1 1 0 100-2H7zm0 6a1 1 0 100 2h1 1 0 100-2H7zm6-12a1 1 0 100 2h1 1 0 100-2h-1zm0 6a1 1 0 100 2h1 1 0 100-2h-1zm0 6a1 1 0 100 2h1 1 0 100-2h-1z" />
+                            </svg>
+                        </td>
+                        <td class="p-4 text-stone-400 text-sm font-medium font-mono text-center">—</td>
+                        <td class="p-4 text-sm font-bold">
+                            <div contenteditable="true" onblur="updateSubtotalDesc('${exp.id}', this.textContent)" class="hover:bg-gold-100/50 px-2 py-1 rounded cursor-text focus:outline-none focus:ring-1 focus:ring-gold-500 inline-block" title="คลิกเพื่อแก้ไขชื่อกลุ่มรวมย่อย">${exp.desc}</div>
+                        </td>
+                        <td class="p-4 text-sm no-print-col">
+                            <span class="px-2.5 py-1 bg-gold-100/80 text-gold-700 rounded-lg text-xs font-bold uppercase tracking-wider">ยอดรวมย่อย</span>
+                        </td>
+                        <td class="p-4 text-sm text-right font-bold font-mono tabular-nums ${amountColorClass}">${amountText}</td>
+                        <td class="p-4 text-sm text-center no-print-col">
+                            <div class="flex justify-center items-center gap-1.5">
+                                <button onclick="moveRowUp(${index})" class="text-stone-400 hover:text-stone-600 p-1.5 rounded hover:bg-stone-100 transition-colors" title="เลื่อนขึ้น">▲</button>
+                                <button onclick="moveRowDown(${index})" class="text-stone-400 hover:text-stone-600 p-1.5 rounded hover:bg-stone-100 transition-colors" title="เลื่อนลง">▼</button>
+                                <button onclick="deleteExpense('${exp.id}')" aria-label="ลบรายการ" class="text-rust-400 hover:text-rust-600 p-1.5 rounded-lg hover:bg-rust-50/60 transition-colors" title="ลบ">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+
                 } else {
-                    total -= exp.amount;
-                    totalExpense += exp.amount;
+                    // รายการปกติธรรมดา
+                    if (isIncome) {
+                        grandTotal += exp.amount;
+                        totalIncome += exp.amount;
+                        runningBlockSum += exp.amount;
+                    } else {
+                        grandTotal -= exp.amount;
+                        totalExpense += exp.amount;
+                        runningBlockSum -= exp.amount;
+                    }
+
+                    const amountText = formatMoney(exp.amount);
+                    const amountColorClass = isIncome ? 'text-ledger-600' : 'text-rust-500';
+                    const badgeClass = isIncome ? 'bg-ledger-50 text-ledger-700' : 'bg-stone-100 text-stone-600';
+
+                    const noteHtml = exp.note ? `<div class="text-xs text-stone-400 mt-1"><b>เลขที่บิล:</b> ${exp.note}</div>` : '';
+                    const isEditingThisRow = exp.id === editingId;
+
+                    tr.className = `border-b border-stone-100 hover:bg-ledger-50/40 transition-colors ${isEditingThisRow ? 'bg-gold-50/70 hover:bg-gold-100 border-l-4 border-l-gold-500' : ''}`;
+                    tr.innerHTML = `
+                        <td class="p-4 text-center cursor-grab active:cursor-grabbing no-print-col text-stone-400 select-none drag-handle" title="จับเพื่อลากสลับแถว">
+                            <svg class="w-4 h-4 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M7 4a1 1 0 100 2h1 1 0 100-2H7zm0 6a1 1 0 100 2h1 1 0 100-2H7zm0 6a1 1 0 100 2h1 1 0 100-2H7zm6-12a1 1 0 100 2h1 1 0 100-2h-1zm0 6a1 1 0 100 2h1 1 0 100-2h-1zm0 6a1 1 0 100 2h1 1 0 100-2h-1z" />
+                            </svg>
+                        </td>
+                        <td class="p-4 text-stone-400 text-sm font-medium font-mono">${index + 1}</td>
+                        <td class="p-4 text-sm">
+                            <div class="font-medium text-ink">${exp.desc}</div>
+                            ${noteHtml}
+                        </td>
+                        <td class="p-4 text-sm no-print-col">
+                            <span class="px-2.5 py-1 ${badgeClass} rounded-lg text-xs font-medium">${exp.cat}</span>
+                        </td>
+                        <td class="p-4 text-sm text-right font-semibold font-mono tabular-nums ${amountColorClass}">${amountText}</td>
+                        <td class="p-4 text-sm text-center no-print-col">
+                            <div class="flex justify-center items-center gap-1">
+                                <button onclick="moveRowUp(${index})" class="text-stone-400 hover:text-stone-600 p-1.5 rounded hover:bg-stone-100 transition-colors" title="เลื่อนขึ้น">▲</button>
+                                <button onclick="moveRowDown(${index})" class="text-stone-400 hover:text-stone-600 p-1.5 rounded hover:bg-stone-100 transition-colors" title="เลื่อนลง">▼</button>
+                                <button onclick="editExpense('${exp.id}')" aria-label="แก้ไขรายการ" class="text-gold-500 hover:text-gold-700 p-1.5 rounded-lg hover:bg-gold-100/60 transition-colors" title="แก้ไข">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                </button>
+                                <button onclick="deleteExpense('${exp.id}')" aria-label="ลบรายการ" class="text-rust-400 hover:text-rust-600 p-1.5 rounded-lg hover:bg-rust-50/60 transition-colors" title="ลบ">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    `;
                 }
 
-                const amountText = formatMoney(exp.amount);
-                const amountColorClass = isIncome ? 'text-ledger-600' : 'text-rust-500';
-                const badgeClass = isIncome ? 'bg-ledger-50 text-ledger-700' : 'bg-stone-100 text-stone-600';
-
-                const noteHtml = exp.note ? `<div class="text-xs text-stone-400 mt-1"><b>เลขที่บิล:</b> ${exp.note}</div>` : '';
-                const isEditingThisRow = exp.id === editingId;
-
-                const tr = document.createElement('tr');
-                tr.className = `border-b border-stone-100 hover:bg-ledger-50/40 transition-colors ${isEditingThisRow ? 'bg-gold-50/70 hover:bg-gold-100 border-l-4 border-l-gold-500' : ''}`;
-                tr.innerHTML = `
-                    <td class="p-4 text-stone-400 text-sm font-medium font-mono">${index + 1}</td>
-                    <td class="p-4 text-sm">
-                        <div class="font-medium text-ink">${exp.desc}</div>
-                        ${noteHtml}
-                    </td>
-                    <td class="p-4 text-sm no-print-col">
-                        <span class="px-2.5 py-1 ${badgeClass} rounded-lg text-xs font-medium">${exp.cat}</span>
-                    </td>
-                    <td class="p-4 text-sm text-right font-semibold font-mono tabular-nums ${amountColorClass}">${amountText}</td>
-                    <td class="p-4 text-sm text-center no-print-col">
-                        <div class="flex justify-center gap-1.5">
-                            <button onclick="editExpense('${exp.id}')" aria-label="แก้ไขรายการ" class="text-gold-500 hover:text-gold-700 p-1.5 rounded-lg hover:bg-gold-100/60 transition-colors" title="แก้ไข">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                            </button>
-                            <button onclick="deleteExpense('${exp.id}')" aria-label="ลบรายการ" class="text-rust-400 hover:text-rust-600 p-1.5 rounded-lg hover:bg-rust-50/60 transition-colors" title="ลบ">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-                        </div>
-                    </td>
-                `;
                 listContainer.appendChild(tr);
             });
 
@@ -534,10 +634,10 @@
             document.getElementById('quick-expense').textContent = formatMoney(totalExpense) + ' บาท';
 
             // แสดงยอดรวมสุทธิและข้อความเบิก
-            if (total > 0) {
+            if (grandTotal > 0) {
                 totalContainer.className = 'p-4 text-right font-bold text-ledger-600 font-mono text-xl tabular-nums';
                 if (footerLabelElement) footerLabelElement.textContent = 'คืนเงิน:';
-            } else if (total < 0) {
+            } else if (grandTotal < 0) {
                 totalContainer.className = 'p-4 text-right font-bold text-rust-600 font-mono text-xl tabular-nums';
                 if (footerLabelElement) footerLabelElement.textContent = 'เบิกเพิ่ม:';
             } else {
@@ -545,8 +645,97 @@
                 if (footerLabelElement) footerLabelElement.textContent = 'ยอดสุทธิ (คงเหลือ):';
             }
 
-            totalContainer.textContent = formatMoney(Math.abs(total));
+            totalContainer.textContent = formatMoney(Math.abs(grandTotal));
         }
+
+        // --- ระบบสลับและจัดการลาก (Drag and Drop HTML5 API) แบบเสถียรผ่าน Event Delegation ---
+        let dragSrcEl = null;
+
+        listContainer.addEventListener('dragstart', function(e) {
+            const tr = e.target.closest('tr');
+            // ห้ามลากถ้าไม่มีรายการ หรือเป็นแถวว่าง
+            if (!tr || tr.id === 'empty-row-cell') {
+                e.preventDefault();
+                return;
+            }
+            dragSrcEl = tr;
+            tr.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', tr.dataset.index);
+        });
+
+        listContainer.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            const tr = e.target.closest('tr');
+            if (!tr || tr === dragSrcEl || tr.id === 'empty-row-cell') return;
+
+            e.dataTransfer.dropEffect = 'move';
+            const rect = tr.getBoundingClientRect();
+            // เช็คว่าผู้ใช้ลากเลยครึ่งบนของแถวเป้าหมายหรือยัง
+            const isAfter = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+
+            // ลบขอบสัญลักษณ์เส้นบอกตำแหน่งของแถวทั้งหมดออกก่อนเพื่อกันซ้อนทับ
+            listContainer.querySelectorAll('tr').forEach(r => {
+                r.style.borderTop = '';
+                r.style.borderBottom = '';
+            });
+
+            // วาดเส้นสีทองชี้นำขอบบน/ล่างอย่างเรียบหรู
+            if (isAfter) {
+                tr.style.borderBottom = '3px solid #B8893A';
+            } else {
+                tr.style.borderTop = '3px solid #B8893A';
+            }
+        });
+
+        listContainer.addEventListener('dragleave', function(e) {
+            const tr = e.target.closest('tr');
+            if (tr) {
+                tr.style.borderTop = '';
+                tr.style.borderBottom = '';
+            }
+        });
+
+        listContainer.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const tr = e.target.closest('tr');
+            if (!tr || tr.id === 'empty-row-cell') return;
+
+            const dragSrcIndex = parseInt(e.dataTransfer.getData('text/plain'));
+            const targetIndex = parseInt(tr.dataset.index);
+            if (isNaN(dragSrcIndex) || isNaN(targetIndex) || dragSrcIndex === targetIndex) return;
+
+            const rect = tr.getBoundingClientRect();
+            const isAfter = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+
+            // ดึงข้อมูลออกจากอาร์เรย์และย้ายแทรกที่ตำแหน่งใหม่
+            const item = expenses.splice(dragSrcIndex, 1)[0];
+            let insertAt = targetIndex;
+            
+            if (isAfter && targetIndex > dragSrcIndex) {
+                insertAt = targetIndex;
+            } else if (isAfter && targetIndex < dragSrcIndex) {
+                insertAt = targetIndex + 1;
+            } else if (!isAfter && targetIndex > dragSrcIndex) {
+                insertAt = targetIndex - 1;
+            } else {
+                insertAt = targetIndex;
+            }
+
+            expenses.splice(insertAt, 0, item);
+            updateUI();
+        });
+
+        listContainer.addEventListener('dragend', function(e) {
+            if (dragSrcEl) {
+                dragSrcEl.classList.remove('dragging');
+            }
+            listContainer.querySelectorAll('tr').forEach(r => {
+                r.style.borderTop = '';
+                r.style.borderBottom = '';
+            });
+            dragSrcEl = null;
+        });
 
         // ควบคุม Modal ยืนยันการเคลียร์ข้อมูล
         function clearData() {
@@ -591,7 +780,7 @@
             // 2. ทำการโคลน (Clone) ส่วนของเอกสารสรุปรายงานหลักออกมาเพื่อจัดทำใน Sandbox ลับนอกจอ
             const clonedElement = originalElement.cloneNode(true);
 
-            // ลบปุ่มและส่วนที่ไม่อยากให้แสดงใน PDF (คอลัมน์ จัดการ และ คอลัมน์ หมวดหมู่)
+            // ลบปุ่มและส่วนที่ไม่อยากให้แสดงใน PDF (คอลัมน์ จัดการ, หมวดหมู่ และ ลากย้าย)
             const noPrintInClone = clonedElement.querySelectorAll('.no-print, .no-print-col');
             noPrintInClone.forEach(el => el.remove());
 
@@ -609,12 +798,22 @@
                 clonedDate.className = "text-gold-600 font-semibold inline-block px-1";
             }
 
-            // จัดการ colspan ใหม่ของตารางในโคลน (เพราะคอลัมน์ "หมวดหมู่" และ "จัดการ" ถูกเอาออกไปแล้ว)
+            // จัดการ colspan ใหม่ของตารางในโคลน (เพราะคอลัมน์ "ย้าย" "หมวดหมู่" และ "จัดการ" ถูกเอาออกไปแล้ว)
             const clonedFooterLabel = clonedElement.querySelector('#footer-label');
             if (clonedFooterLabel) clonedFooterLabel.colSpan = 2; // ยอดรวมจัดวางตรงแถว ลำดับ + รายการพอดี
 
             const clonedEmptyCell = clonedElement.querySelector('#empty-row-cell');
             if (clonedEmptyCell) clonedEmptyCell.colSpan = 3; // เหลือ ลำดับ, รายการ, จำนวนเงิน
+
+            // แก้ไข colspan แถวยอดรวมย่อยใน PDF โคลนด้วย
+            const clonedSubtotalRows = clonedElement.querySelectorAll('tr.bg-gold-50\\/50');
+            clonedSubtotalRows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 2) {
+                    // ปรับแต่งช่องรายการใน Subtotal ให้เต็มความกว้างสอดรับคอลัมน์ที่ถูกซ่อนออกไป
+                    cells[0].textContent = '—';
+                }
+            });
 
             // จัดความกว้างคอลัมน์ของตารางในโคลนให้แผ่กว้างเต็มแผ่นอย่างสวยงามสมมาตร
             const clonedTable = clonedElement.querySelector('#expense-table');
@@ -627,7 +826,7 @@
                 if (ths.length >= 3) {
                     ths[0].style.width = '12%';  // ลำดับ
                     ths[1].style.width = '63%';  // รายการ
-                    ths[2].style.width = '25%';  // จำนวนเงิน (บาท)
+                    ths[2].style.width = '25%';  // จำนวนเงิน
                 }
                 
                 // จัด Padding ของตารางให้หรูหรากระชับพอเหมาะกับบิล
@@ -661,9 +860,15 @@
                 width: 100% !important;
             `;
             signatureArea.innerHTML = `
-                
+                <div class="text-left space-y-1">
+                    <p>ลงชื่อ............................................................ ผู้รับรอง/ผู้รับเงิน</p>
+                    <p class="text-[10px] text-stone-400 pl-4">(............................................................)</p>
+                    <p class="text-[10px] text-stone-400 pl-4">วันที่: ______ / ______ / ______</p>
+                </div>
                 <div class="text-right space-y-1">
-                   
+                    <p>ลงชื่อ............................................................ ผู้รับเงิน/ผู้ตรวจบัญชี</p>
+                    <p class="text-[10px] text-stone-400 pr-4">(............................................................)</p>
+                    <p class="text-[10px] text-stone-400 pr-4">ตำแหน่ง: เจ้าหน้าที่การเงินและบัญชี</p>
                 </div>
             `;
             clonedElement.appendChild(signatureArea);
